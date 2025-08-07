@@ -4,11 +4,14 @@ import cohere
 import pandas as pd
 import os
 import sys
+from dotenv import load_dotenv
 
-# --- Setup Cohere client ---
-co = cohere.Client("kjnSJq8XtaMWXRTwadzTZAejPt3f8BBqPHszeTWk")  # Replace with your API key
+# Setup Cohere client
+load_dotenv()
+api_key = os.getenv("COHERE_API_KEY")
+co = cohere.Client(api_key)
 
-# --- Load CSV (bundled inside app) ---
+# Load CSV (bundled inside app)
 def get_csv_path(filename):
     if getattr(sys, 'frozen', False):
         # If the app is bundled by PyInstaller
@@ -27,7 +30,7 @@ except FileNotFoundError:
 df.columns = df.columns.str.strip()
 df.fillna("Unknown", inplace=True)  # Handle missing data
 
-# --- Get dropdown options from CSV ---
+# Get dropdown options from CSV
 def get_unique_options(column):
     options = set()
     for items in df[column].dropna():
@@ -39,11 +42,11 @@ stage_options = get_unique_options('Stages of Investing')
 market_options = get_unique_options('Market')
 geo_options = get_unique_options('Geo')
 
-# --- Main window ---
+# Main window
 root = tk.Tk()
 root.title("Startup Investor Matcher")
 
-# --- Helper for labeled multi-select listboxes ---
+# Helper for labeled multi-select listboxes
 def create_multiselect_listbox(parent, options, row, col):
     label = tk.Label(parent, text=f"Select Startup {options['label']}:")
     label.grid(row=row, column=col*2, sticky="nw", padx=5, pady=5)
@@ -53,7 +56,7 @@ def create_multiselect_listbox(parent, options, row, col):
     listbox.grid(row=row, column=col*2+1, sticky="w", padx=5, pady=5)
     return listbox
 
-# --- Input widgets ---
+# Input widgets
 stage_listbox = create_multiselect_listbox(root, {'label': 'Stage(s)', 'values': stage_options}, 0, 0)
 market_listbox = create_multiselect_listbox(root, {'label': 'Market(s)', 'values': market_options}, 1, 0)
 geo_listbox = create_multiselect_listbox(root, {'label': 'Geography(ies)', 'values': geo_options}, 2, 0)
@@ -66,14 +69,14 @@ top_n_combo.grid(row=3, column=1, sticky="w", padx=5, pady=5)
 result_text = tk.Text(root, height=20, width=100)
 result_text.grid(row=4, column=0, columnspan=4, padx=10, pady=10)
 
-# --- Store descriptions globally for debug viewer ---
+# Store descriptions globally for debug viewer
 global_descriptions = []  # Will hold tuples (investor_name, description)
 
 def get_selected_items(listbox):
     selected_indices = listbox.curselection()
     return [listbox.get(i) for i in selected_indices]
 
-# --- Search and rerank investors ---
+# Search and rerank investors
 def search_investors():
     global global_descriptions
     result_text.delete("1.0", tk.END)
@@ -146,7 +149,7 @@ def search_investors():
             f"{i}. {investor_names[idx]} — Score: {result.relevance_score:.2f}\n{url}\n\n"
         )
 
-# --- Show raw investor descriptions used in ranking ---
+# Show raw investor descriptions used in ranking
 def show_descriptions():
     if not global_descriptions:
         messagebox.showinfo("No Data", "Please run a search first.")
@@ -161,12 +164,12 @@ def show_descriptions():
     for i, (name, desc) in enumerate(global_descriptions, 1):
         text_widget.insert(tk.END, f"{i}. {name}:\n{desc}\n\n")
 
-# --- Buttons ---
+# Buttons
 search_btn = tk.Button(root, text="Find Investors", command=search_investors)
 search_btn.grid(row=3, column=2, padx=10, pady=10)
 
 show_desc_btn = tk.Button(root, text="Show Descriptions Sent to AI", command=show_descriptions)
 show_desc_btn.grid(row=3, column=3, padx=10, pady=10)
 
-# --- Run app ---
+# Run app
 root.mainloop()
